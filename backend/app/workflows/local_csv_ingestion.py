@@ -125,6 +125,15 @@ def ingest_directory(
     work_engine = engine_override or engine
     _ensure_registry(work_engine)
 
+    if base_path.is_file():
+        dataset = ingest_csv_file(
+            base_path,
+            engine_override=work_engine,
+            business=business,
+            category=base_path.parent.name if base_path.parent != base_path else "custom",
+        )
+        return [dataset]
+
     ingested: List[IngestedDataset] = []
 
     for business_dir in iter_business_directories(base_path):
@@ -161,6 +170,49 @@ def ingest_directory(
 
 def ingest_default_data() -> List[IngestedDataset]:
     return ingest_directory()
+
+
+def ingest_csv_file(
+    csv_path: Path,
+    *,
+    engine_override: Optional[Engine] = None,
+    business: Optional[str] = None,
+    category: Optional[str] = None,
+    dataset_name: Optional[str] = None,
+) -> IngestedDataset:
+    csv_path = Path(csv_path)
+    if not csv_path.exists():
+        raise FileNotFoundError(f"CSV file not found: {csv_path}")
+
+    work_engine = engine_override or engine
+    _ensure_registry(work_engine)
+
+    df = _load_csv(csv_path)
+
+    business_name = business or "custom_business"
+    category_slug = _normalize_identifier(category or "custom")
+    dataset_display_name = dataset_name or csv_path.stem
+    dataset_slug = _normalize_identifier(dataset_display_name)
+    business_slug = _normalize_identifier(business_name)
+    table_name = f"{business_slug}_{category_slug}_{dataset_slug}"
+
+    df["business_name"] = business_name
+    df["category"] = category_slug
+    df["source_file"] = str(csv_path)
+
+    df.to_sql(table_name, work_engine, if_exists="replace", index=False)
+
+    dataset = IngestedDataset(
+        table_name=table_name,
+        business=business_name,
+        category=category_slug,
+        dataset_name=dataset_display_name,
+        source_file=str(csv_path),
+        row_count=len(df),
+        columns=list(df.columns),
+    )
+    _record_dataset(work_engine, dataset)
+    return dataset
 
 
 if __name__ == "__main__":

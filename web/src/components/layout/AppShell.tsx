@@ -6,11 +6,12 @@ interface AppShellProps {
 
 const navigation = [
   { label: "Overview", href: "#overview" },
+  { label: "Ingestion", href: "#ingestion" },
   { label: "SQL Explorer", href: "#sql-explorer" },
   { label: "Experiment Planner", href: "#experiments" },
-  { label: "Campaign Strategy", href: "#campaign-strategy-experiment" },
   { label: "Campaigns", href: "#campaigns" },
   { label: "Inventory", href: "#inventory" },
+  { label: "AutoML", href: "#automl" },
 ];
 
 export function AppShell({ children }: AppShellProps) {
@@ -20,7 +21,7 @@ export function AppShell({ children }: AppShellProps) {
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Marketing Intelligence</p>
-            <h1 className="text-2xl font-semibold text-slate-900">TripleWhale Inspired Control Center</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">Marketing Control Center</h1>
             <p className="text-sm text-slate-600">
               Unified analytics, ingestion, and campaign orchestration powered by the agent workflow stack.
             </p>

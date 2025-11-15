@@ -1,26 +1,24 @@
 import { AppShell } from "@/components/layout/AppShell";
-import { CohortTable } from "@/components/dashboard/CohortTable";
-import { ExperimentList } from "@/components/dashboard/ExperimentList";
-import { InventoryAlerts } from "@/components/dashboard/InventoryAlerts";
-import { MetricCard } from "@/components/dashboard/MetricCard";
-import { RecommendationBoard } from "@/components/dashboard/RecommendationBoard";
-import {
-  campaignRecommendations,
-  cohortInsights,
-  experimentPlans,
-  inventoryAlerts,
-  metricTrends,
-} from "@/lib/seedData";
+import { AnomalyAlerts } from "@/components/dashboard/AnomalyAlerts";
+import { AutoInsights } from "@/components/dashboard/AutoInsights";
+import { CampaignRecommendations } from "@/components/dashboard/CampaignRecommendations";
+import { CohortTableWrapper } from "@/components/dashboard/CohortTableWrapper";
+import { ExperimentPlannerWrapper } from "@/components/dashboard/ExperimentPlannerWrapper";
+import { ForecastChart } from "@/components/dashboard/ForecastChart";
+import { InventoryAlertsWrapper } from "@/components/dashboard/InventoryAlertsWrapper";
+import { OverviewMetrics } from "@/components/dashboard/OverviewMetrics";
 import { PromptSqlExplorer } from "@/components/dashboard/PromptSqlExplorer";
-import { CampaignStrategyExperiment } from "@/components/dashboard/CampaignStrategyExperiment";
+import { CsvUploadCard } from "@/components/dashboard/CsvUploadCard";
 
 export default function Home() {
   return (
     <AppShell>
-      <section id="overview" className="grid gap-6 lg:grid-cols-4">
-        {metricTrends.map((metric) => (
-          <MetricCard key={metric.label} metric={metric} />
-        ))}
+      <section id="overview">
+        <OverviewMetrics />
+      </section>
+
+      <section id="ingestion" className="mt-10">
+        <CsvUploadCard />
       </section>
 
       <section id="sql-explorer" className="mt-10 grid gap-6 lg:grid-cols-[2fr_1fr]">
@@ -52,20 +50,35 @@ export default function Home() {
       </section>
 
       <section id="experiments" className="mt-10 grid gap-6 lg:grid-cols-[1.2fr_1fr]">
-        <ExperimentList experiments={experimentPlans} />
-        <CohortTable cohorts={cohortInsights} />
-      </section>
-
-      <section id="campaign-strategy-experiment" className="mt-10">
-        <CampaignStrategyExperiment />
+        <ExperimentPlannerWrapper />
+        <CohortTableWrapper />
       </section>
 
       <section id="campaigns" className="mt-10">
-        <RecommendationBoard recommendations={campaignRecommendations} />
+        <CampaignRecommendations />
       </section>
 
       <section id="inventory" className="mt-10">
-        <InventoryAlerts alerts={inventoryAlerts} />
+        <InventoryAlertsWrapper />
+      </section>
+
+      <section id="automl" className="mt-10">
+        <div className="mb-6">
+          <h2 className="text-2xl font-semibold text-slate-900">AutoML Analytics</h2>
+          <p className="text-sm text-slate-600 mt-1">
+            AI-powered forecasting, anomaly detection, and automated insights
+          </p>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <AutoInsights metrics={["revenue", "aov", "roas"]} />
+          <AnomalyAlerts metric="sales" />
+        </div>
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <ForecastChart metric="sales" periods={30} />
+          <ForecastChart metric="revenue" periods={30} />
+        </div>
       </section>
     </AppShell>
   );

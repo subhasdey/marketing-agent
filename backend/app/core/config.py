@@ -16,8 +16,15 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///../storage/marketing_agent.db"
     analytics_schema: str = "analytics"
     ingestion_data_root: str = "/Users/kerrief/projects/mappe/data"
+    shopify_store_domain: str = Field(
+        default="", description="Default Shopify store domain (e.g., my-shop.myshopify.com)"
+    )
+    shopify_access_token: str = Field(
+        default="", description="Private Admin API access token for Shopify ingestion"
+    )
+    shopify_api_version: str = Field(default="2024-04", description="Shopify Admin API version")
 
-    allowed_origins: List[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+    allowed_origins: List[str] = Field(default_factory=lambda: ["http://localhost:2222"])
 
     # LLM Configuration
     openai_api_key: str = Field(default="", description="OpenAI API key for LLM workflows")

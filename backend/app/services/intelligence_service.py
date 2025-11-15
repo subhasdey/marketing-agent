@@ -70,3 +70,30 @@ class IntelligenceService:
                     "talking_points": [],
                 }
             ]
+
+    def generate_experiment_plans(self, metrics: List[str], context: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate experiment plans using LLM."""
+        if not self.llm_service:
+            return [
+                {
+                    "name": "LLM Not Available",
+                    "hypothesis": "Configure LLM API keys to generate experiment plans",
+                    "primary_metric": "N/A",
+                    "status": "draft",
+                    "eta": "Configure LLM service",
+                }
+            ]
+
+        try:
+            experiments = self.llm_service.generate_experiment_plans(metrics, context)
+            return experiments if isinstance(experiments, list) else [experiments]
+        except Exception as e:
+            return [
+                {
+                    "name": "Error",
+                    "hypothesis": "Experiment generation failed",
+                    "primary_metric": "N/A",
+                    "status": "draft",
+                    "eta": str(e),
+                }
+            ]

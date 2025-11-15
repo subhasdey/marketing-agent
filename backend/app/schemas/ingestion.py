@@ -47,3 +47,30 @@ class CsvIngestionResponse(BaseModel):
     datasets: List[IngestedDatasetSummary] = Field(
         default_factory=list, description="Metadata for ingested datasets"
     )
+
+
+class ShopifyMarketingIngestionRequest(BaseModel):
+    store_domain: Optional[str] = Field(
+        None, description="Shopify store domain (my-store.myshopify.com). Defaults to settings."
+    )
+    access_token: Optional[str] = Field(
+        None, description="Admin API access token. Defaults to settings."
+    )
+    api_version: Optional[str] = Field(
+        None, description="Shopify Admin API version (e.g., 2024-04). Defaults to settings."
+    )
+    start_date: Optional[datetime] = Field(
+        None, description="Optional marketing event start date filter (ISO-8601)."
+    )
+    end_date: Optional[datetime] = Field(
+        None, description="Optional marketing event end date filter (ISO-8601)."
+    )
+
+
+class ShopifyMarketingIngestionResponse(BaseModel):
+    job_id: str
+    status: str
+    submitted_at: datetime = Field(default_factory=datetime.utcnow)
+    warnings: Optional[List[str]] = None
+    ingested_count: int = Field(..., description="Number of datasets ingested")
+    datasets: List[IngestedDatasetSummary] = Field(default_factory=list)

@@ -15,8 +15,8 @@ def create_app() -> FastAPI:
 
     # Ensure localhost variants are included for development
     origins = list(settings.allowed_origins)
-    if "http://localhost:3000" in origins and "http://127.0.0.1:3000" not in origins:
-        origins.append("http://127.0.0.1:3000")
+    if "http://localhost:2222" in origins and "http://127.0.0.1:2222" not in origins:
+        origins.append("http://127.0.0.1:2222")
 
     app.add_middleware(
         CORSMiddleware,

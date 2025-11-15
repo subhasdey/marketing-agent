@@ -12,6 +12,7 @@ from sqlalchemy.engine import Engine
 from ..core.config import settings
 from ..db.session import engine
 from ..workflows.local_csv_ingestion import DATASET_REGISTRY_TABLE
+from .analytics_service import AnalyticsService
 from .llm_service import LLMService
 
 
@@ -26,6 +27,7 @@ class PromptToSqlService:
         self.engine = db_engine or engine
         self.use_llm = use_llm if use_llm is not None else settings.use_llm_for_sql
         self.llm_service: Optional[LLMService] = None
+        self.analytics_service = AnalyticsService(db_engine=self.engine)
         if self.use_llm:
             # Try providers in order: configured default, then ollama (local), then openai, then anthropic
             providers_to_try = [settings.default_llm_provider]
@@ -100,6 +102,10 @@ class PromptToSqlService:
         if not datasets:
             raise ValueError("No datasets have been ingested yet.")
 
+        kpi_metrics = self._detect_kpi_metrics(prompt)
+        if kpi_metrics:
+            return self._execute_kpi_prompt(kpi_metrics)
+
         if self.use_llm and self.llm_service:
             return self._execute_prompt_llm(prompt, datasets)
         else:
@@ -173,6 +179,70 @@ class PromptToSqlService:
             "columns": dataset["columns"],
             "rows": rows,
             "generated_by": "heuristic",
+        }
+
+    def _detect_kpi_metrics(self, prompt: str) -> List[str]:
+        """Detect KPI metrics referenced in the prompt."""
+        prompt_lower = prompt.lower()
+        keyword_map = {
+            "revenue": ["revenue", "total revenue", "total sales", "sales"],
+            "aov": ["aov", "average order value"],
+            "roas": ["roas", "return on ad spend"],
+            "conversion_rate": ["conversion rate", "cr", "conversions"],
+            "sessions": ["sessions", "traffic", "visits"],
+        }
+
+        detected: List[str] = []
+        for metric, keywords in keyword_map.items():
+            if any(keyword in prompt_lower for keyword in keywords):
+                detected.append(metric)
+
+        if "kpi" in prompt_lower or "all metrics" in prompt_lower:
+            detected = ["revenue", "aov", "roas", "conversion_rate", "sessions"]
+
+        if not detected:
+            return []
+
+        disqualifiers = [
+            " group",
+            " grouped",
+            " by ",
+            " per ",
+            " breakdown",
+            " each ",
+            " vs ",
+            " over ",
+            " trend",
+            " split",
+            " segment",
+            " cohort",
+            " channel",
+        ]
+        if any(term in prompt_lower for term in disqualifiers):
+            return []
+
+        summary_cues = ["total", "overall", "kpi", "overview", "dashboard", "summary", "aggregate"]
+        words = prompt_lower.split()
+        if not any(cue in prompt_lower for cue in summary_cues) and len(words) > 8:
+            return []
+
+        return detected
+
+    def _execute_kpi_prompt(self, metrics: List[str]) -> Dict[str, object]:
+        """Return KPI results instead of running SQL for known metrics."""
+        kpi_values = self.analytics_service.query_kpis(metrics, {})
+        rows = [
+            {"metric": metric, "value": round(kpi_values.get(metric, 0.0), 4)} for metric in metrics
+        ]
+        return {
+            "table_name": "kpi_metrics",
+            "business": "All Businesses",
+            "dataset_name": "Aggregated KPIs",
+            "sql": "/* Aggregated via AnalyticsService: no direct SQL executed */",
+            "columns": ["metric", "value"],
+            "rows": rows,
+            "generated_by": "kpi",
+            "model": "",
         }
 
     def _is_safe_sql(self, sql: str) -> bool:

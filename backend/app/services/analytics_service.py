@@ -66,7 +66,7 @@ class AnalyticsService:
             return self._compute_roas(datasets, filters)
 
         # Conversion rate
-        if "conversion" in metric_lower:
+        if "conversion" in metric_lower or "cr" == metric_lower:
             return self._compute_conversion_rate(datasets, filters)
 
         # Session metrics
@@ -102,20 +102,48 @@ class AnalyticsService:
 
     def _compute_aov(self, datasets: List[Dict[str, str]], filters: Dict[str, str]) -> float:
         """Compute Average Order Value."""
-        revenue = self._sum_from_tables(datasets, ["sales", "revenue", "total_sales"], filters)
-        orders = self._sum_from_tables(datasets, ["orders", "order_count"], filters)
+        revenue = self._sum_from_tables(
+            datasets,
+            ["sales", "revenue", "total_sales", "net_sales", "gross_sales"],
+            filters,
+        )
+        orders = self._sum_from_tables(datasets, ["orders", "order_count", "total_orders"], filters)
         return revenue / orders if orders > 0 else 0.0
 
     def _compute_roas(self, datasets: List[Dict[str, str]], filters: Dict[str, str]) -> float:
         """Compute Return on Ad Spend."""
-        revenue = self._sum_from_tables(datasets, ["sales", "revenue"], filters)
-        spend = self._sum_from_tables(datasets, ["spend", "ad_spend", "marketing_spend"], filters)
+        revenue = self._sum_from_tables(
+            datasets,
+            ["sales", "revenue", "total_sales", "net_sales", "gross_sales"],
+            filters,
+        )
+        spend = self._sum_from_tables(
+            datasets,
+            ["spend", "ad_spend", "marketing_spend", "total_spend", "media_cost"],
+            filters,
+        )
         return revenue / spend if spend > 0 else 0.0
 
     def _compute_conversion_rate(self, datasets: List[Dict[str, str]], filters: Dict[str, str]) -> float:
         """Compute conversion rate percentage."""
-        conversions = self._sum_from_tables(datasets, ["conversions", "converted_sessions"], filters)
-        sessions = self._sum_from_tables(datasets, ["sessions", "session_count"], filters)
+        conversions = self._sum_from_tables(
+            datasets,
+            [
+                "conversion",
+                "conversions",
+                "total_conversion",
+                "converted_sessions",
+                "sessions_converted",
+                "orders",
+                "total_orders_placed",
+            ],
+            filters,
+        )
+        sessions = self._sum_from_tables(
+            datasets,
+            ["sessions", "session_count", "total_sessions", "visits", "total_visitors"],
+            filters,
+        )
         return (conversions / sessions * 100) if sessions > 0 else 0.0
 
     def _build_where_clause(self, filters: Dict[str, str]) -> str:

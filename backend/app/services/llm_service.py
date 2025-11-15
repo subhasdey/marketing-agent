@@ -531,3 +531,107 @@ Format: [{{"name": "...", "channel": "...", "objective": "...", "expected_uplift
         except Exception as e:
             return [{"error": f"Campaign generation failed: {str(e)}"}]
 
+    def generate_experiment_plans(self, metrics: List[str], context: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate experiment plans using LLM."""
+        if self.provider == "openai":
+            return self._generate_experiments_openai(metrics, context)
+        elif self.provider == "anthropic":
+            return self._generate_experiments_anthropic(metrics, context)
+        elif self.provider == "ollama":
+            return self._generate_experiments_ollama(metrics, context)
+        else:
+            raise ValueError(f"Unsupported LLM provider: {self.provider}")
+
+    def _generate_experiments_openai(self, metrics: List[str], context: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate experiment plans using OpenAI."""
+        client = self._get_openai_client()
+
+        prompt = f"""Generate 3-5 marketing experiment plans based on current metrics and performance:
+
+Metrics to optimize: {', '.join(metrics)}
+Context: {json.dumps(context, default=str)}
+
+Return a JSON object with a "experiments" array. Each experiment should have:
+- name: Short experiment name
+- hypothesis: Clear hypothesis statement
+- primary_metric: The metric this experiment targets
+- status: "draft", "testing", or "complete"
+- eta: Estimated completion or status message
+
+Format: {{"experiments": [{{"name": "...", "hypothesis": "...", "primary_metric": "...", "status": "...", "eta": "..."}}]}}"""
+
+        try:
+            response = client.chat.completions.create(
+                model=settings.openai_model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.8,
+                response_format={"type": "json_object"},
+            )
+            content = response.choices[0].message.content.strip()
+            data = json.loads(content)
+            return data.get("experiments", []) if isinstance(data, dict) else data
+        except Exception as e:
+            return [{"error": f"Experiment generation failed: {str(e)}"}]
+
+    def _generate_experiments_anthropic(self, metrics: List[str], context: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate experiment plans using Anthropic."""
+        client = self._get_anthropic_client()
+
+        prompt = f"""Generate 3-5 marketing experiment plans as JSON array:
+
+Metrics to optimize: {', '.join(metrics)}
+Context: {json.dumps(context, default=str)}
+
+Each experiment should have: name, hypothesis, primary_metric, status (draft/testing/complete), eta."""
+
+        try:
+            response = client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=1000,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            content = response.content[0].text.strip()
+            data = json.loads(content)
+            return data if isinstance(data, list) else [data]
+        except Exception as e:
+            return [{"error": f"Experiment generation failed: {str(e)}"}]
+
+    def _generate_experiments_ollama(self, metrics: List[str], context: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate experiment plans using Ollama."""
+        client = self._get_ollama_client()
+
+        prompt = f"""Generate 3-5 marketing experiment plans as JSON array:
+
+Metrics to optimize: {', '.join(metrics)}
+Context: {json.dumps(context, default=str)}
+
+Return JSON array with: name, hypothesis, primary_metric, status (draft/testing/complete), eta."""
+
+        try:
+            response = client.post(
+                "/api/chat",
+                json={
+                    "model": settings.ollama_model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.8,
+                        "num_predict": 1000,
+                    },
+                },
+            )
+            response.raise_for_status()
+            result = response.json()
+            content = result["message"]["content"].strip()
+            if "```json" in content:
+                content = content.split("```json")[1].split("```")[0].strip()
+            elif "```" in content:
+                content = content.split("```")[1].split("```")[0].strip()
+
+            data = json.loads(content)
+            return data if isinstance(data, list) else [data]
+        except json.JSONDecodeError as e:
+            return [{"error": f"Failed to parse JSON response: {str(e)}"}]
+        except Exception as e:
+            return [{"error": f"Experiment generation failed: {str(e)}"}]
+

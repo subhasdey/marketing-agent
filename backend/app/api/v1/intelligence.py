@@ -5,6 +5,9 @@ from ...schemas.intelligence import (
     CampaignRecommendation,
     CampaignRecommendationRequest,
     CampaignRecommendationResponse,
+    ExperimentPlan,
+    ExperimentPlanRequest,
+    ExperimentPlanResponse,
     InsightSummaryRequest,
     InsightSummaryResponse,
 )
@@ -46,3 +49,22 @@ async def recommend_campaigns(payload: CampaignRecommendationRequest) -> Campaig
         )
     rationale = f"Generated {len(recommendations)} campaign recommendations based on {len(payload.objectives)} objectives and {len(payload.audience_segments)} audience segments."
     return CampaignRecommendationResponse(recommendations=recommendations, rationale=rationale)
+
+
+@router.post("/experiments", response_model=ExperimentPlanResponse, summary="Generate experiment plans")
+async def generate_experiments(payload: ExperimentPlanRequest) -> ExperimentPlanResponse:
+    """Generate experiment plans using LLM workflows."""
+    experiments_data = intelligence_service.generate_experiment_plans(payload.metrics, payload.context)
+    experiments = []
+    for exp in experiments_data:
+        if "error" not in exp:
+            experiments.append(
+                ExperimentPlan(
+                    name=exp.get("name", "Unnamed Experiment"),
+                    hypothesis=exp.get("hypothesis", "No hypothesis provided"),
+                    primary_metric=exp.get("primary_metric", "Unknown"),
+                    status=exp.get("status", "draft"),
+                    eta=exp.get("eta", "TBD"),
+                )
+            )
+    return ExperimentPlanResponse(experiments=experiments)

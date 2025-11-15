@@ -34,3 +34,21 @@ class CampaignRecommendationResponse(BaseModel):
     recommendations: List[CampaignRecommendation]
     rationale: str
     generated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ExperimentPlanRequest(BaseModel):
+    metrics: List[str] = Field(..., description="Metrics to optimize with experiments")
+    context: Dict[str, str] = Field(default_factory=dict, description="Additional context for experiment planning")
+
+
+class ExperimentPlan(BaseModel):
+    name: str
+    hypothesis: str
+    primary_metric: str
+    status: str = Field(..., description="Status: draft, testing, or complete")
+    eta: str = Field(..., description="Estimated completion or status message")
+
+
+class ExperimentPlanResponse(BaseModel):
+    experiments: List[ExperimentPlan]
+    generated_at: datetime = Field(default_factory=datetime.utcnow)
